@@ -1,0 +1,83 @@
+name: Shop CI-CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shop-local-deployment
+  cancel-in-progress: false
+
+jobs:
+  build-test-deploy:
+    runs-on: [self-hosted, Windows, X64, shop-local]
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Build, test and package
+        run: |
+          mvn -B clean verify
+          if ($LASTEXITCODE -ne 0) {
+            throw "Maven build or tests failed"
+          }
+
+      - name: Build Docker image
+        run: |
+          $image = "shop-management-app:$env:GITHUB_SHA"
+          docker --context desktop-linux build -t $image .
+          if ($LASTEXITCODE -ne 0) {
+            throw "Docker build failed"
+          }
+
+      - name: Deploy to Docker Desktop Kubernetes
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          function Check-Exit {
+            if ($LASTEXITCODE -ne 0) {
+              throw "Command failed with exit code $LASTEXITCODE"
+            }
+          }
+
+          kubectl --context docker-desktop get nodes
+          Check-Exit
+
+          kubectl --context docker-desktop apply -f k8s/mysql-deployment.yml
+          Check-Exit
+
+          kubectl --context docker-desktop rollout status deployment/mysql --timeout=300s
+          Check-Exit
+
+          $image = "shop-management-app:$env:GITHUB_SHA"
+          $manifest = Get-Content k8s/app-deployment.yml -Raw
+          $manifest = $manifest.Replace("shop-management-app:latest", $image)
+          $manifest = $manifest.Replace("replicas: 2", "replicas: 1")
+
+          $rendered = Join-Path $env:RUNNER_TEMP "shop-app.yml"
+          Set-Content -Path $rendered -Value $manifest -Encoding utf8
+
+          kubectl --context docker-desktop apply -f $rendered
+          Check-Exit
+
+          kubectl --context docker-desktop rollout status deployment/shop-app --timeout=300s
+          Check-Exit
+
+          kubectl --context docker-desktop scale deployment/shop-app --replicas=2
+          Check-Exit
+
+          kubectl --context docker-desktop rollout status deployment/shop-app --timeout=300s
+          Check-Exit
+
+          kubectl --context docker-desktop get pods
+          Check-Exit
