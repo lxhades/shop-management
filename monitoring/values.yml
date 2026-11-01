@@ -8,3 +8,6 @@ prometheus:
         memory: 256Mi
       limits:
         memory: 1Gi
+prometheus-node-exporter:
+  hostRootFsMount:
+    mountPropagation: None
