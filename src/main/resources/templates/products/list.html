@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ECommerce Mini</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header><strong>ECommerce Mini</strong>
+    <nav><a href="/products">Sản phẩm</a><a href="/categories">Danh mục</a></nav>
+</header>
+<main><p class="notice" th:if="${message}" th:text="${message}"></p>
+    <h1>Quản lý sản phẩm</h1><a class="button" href="/products/new">+ Thêm sản phẩm</a>
+    <form method="get" class="filters"><input name="q" placeholder="Tìm theo tên…" th:value="${q}"><select
+            name="categoryId">
+        <option value="">Tất cả danh mục</option>
+        <option th:each="c:${categories}" th:value="${c.id}" th:text="${c.name}"
+                th:selected="${c.id == categoryId}"></option>
+    </select>
+        <button>Tìm kiếm</button>
+        <a href="/products">Đặt lại</a></form>
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Sản phẩm</th>
+            <th>Giá (VND)</th>
+            <th>Tồn kho</th>
+            <th>Danh mục</th>
+            <th>Thao tác</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="p:${rows}">
+            <td th:text="${p.id}"></td>
+            <td th:text="${p.name}"></td>
+            <td th:text="${#numbers.formatDecimal(p.price,1,'COMMA',0,'POINT')}"></td>
+            <td th:text="${p.stock}"></td>
+            <td th:text="${p.category.name}"></td>
+            <td><a th:href="@{/products/{id}/edit(id=${p.id})}">Sửa</a>
+                <form class="inline" th:action="@{/products/{id}/delete(id=${p.id})}" method="post"
+                      onsubmit="return confirm('Xóa sản phẩm này?')">
+                    <button class="danger">Xóa</button>
+                </form>
+            </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(rows)}">
+            <td colspan="6">Không có sản phẩm phù hợp.</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+<footer>TX1 · Spring Boot · JPA / Hibernate · MySQL</footer>
+</body>
+</html>

@@ -1,0 +1,49 @@
+# Dedicated Linux/WSL2 SHELL executor on the SAME host/user as Minikube.
+# Required tag: minikube-local. No Docker-in-Docker or shared SaaS runner.
+stages: [build, test, package, deploy]
+default:
+  tags: [minikube-local]
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+cache:
+  key: maven
+  paths: [.m2/repository/]
+build_job:
+  stage: build
+  script:
+    - mvn -B -DskipTests compile
+test_job:
+  stage: test
+  script:
+    - mvn -B test
+  artifacts:
+    when: always
+    reports:
+      junit: target/surefire-reports/TEST-*.xml
+package_job:
+  stage: package
+  script:
+    - mvn -B package -DskipTests
+  artifacts:
+    paths: [target/*.jar]
+    expire_in: 7 days
+deploy_to_minikube:
+  stage: deploy
+  resource_group: minikube-deploy
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - minikube status
+    - kubectl config use-context minikube
+    - docker build -t "shop-management-app:$CI_COMMIT_SHA" .
+    - minikube image load "shop-management-app:$CI_COMMIT_SHA"
+    - kubectl apply -f k8s/mysql-deployment.yml
+    - kubectl rollout status deployment/mysql --timeout=300s
+    - sed "s|shop-management-app:latest|shop-management-app:$CI_COMMIT_SHA|g" k8s/app-deployment.yml > app-rendered.yml
+    # First boot with one replica avoids concurrent Hibernate schema creation.
+    - |
+      sed -i "s/replicas: 2/replicas: 1/" app-rendered.yml
+    - kubectl apply -f app-rendered.yml
+    - kubectl rollout status deployment/shop-app --timeout=300s
+    - kubectl scale deployment/shop-app --replicas=2
+    - kubectl rollout status deployment/shop-app --timeout=300s

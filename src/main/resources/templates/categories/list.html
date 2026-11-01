@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ECommerce Mini</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header><strong>ECommerce Mini</strong>
+    <nav><a href="/products">Sản phẩm</a><a href="/categories">Danh mục</a></nav>
+</header>
+<main><p class="notice" th:if="${message}" th:text="${message}"></p>
+    <h1>Danh mục sản phẩm</h1><a class="button" href="/categories/new">+ Thêm danh mục</a>
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Tên</th>
+            <th>Mô tả</th>
+            <th>Thao tác</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="c:${rows}">
+            <td th:text="${c.id}"></td>
+            <td th:text="${c.name}"></td>
+            <td th:text="${c.description}"></td>
+            <td><a th:href="@{/categories/{id}/edit(id=${c.id})}">Sửa</a>
+                <form class="inline" th:action="@{/categories/{id}/delete(id=${c.id})}" method="post"
+                      onsubmit="return confirm('Xóa danh mục này?')">
+                    <button class="danger">Xóa</button>
+                </form>
+            </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(rows)}">
+            <td colspan="4">Chưa có danh mục. Hãy thêm danh mục đầu tiên.</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+<footer>TX1 · Spring Boot · JPA / Hibernate · MySQL</footer>
+</body>
+</html>

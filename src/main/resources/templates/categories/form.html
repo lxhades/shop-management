@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ECommerce Mini</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header><strong>ECommerce Mini</strong>
+    <nav><a href="/products">Sản phẩm</a><a href="/categories">Danh mục</a></nav>
+</header>
+<main><p class="notice" th:if="${message}" th:text="${message}"></p>
+    <h1 th:text="${category.id == null ? 'Thêm danh mục' : 'Sửa danh mục'}"></h1>
+    <form class="card" th:action="@{/categories/save}" th:object="${category}" method="post"><input type="hidden"
+                                                                                                    th:field="*{id}"><label>Tên
+        danh mục<input th:field="*{name}" required maxlength="255"></label>
+        <p class="error" th:errors="*{name}"></p><label>Mô tả<textarea th:field="*{description}"
+                                                                       maxlength="255"></textarea></label>
+        <p class="error" th:errors="*{description}"></p>
+        <button>Lưu danh mục</button>
+        <a href="/categories">Quay lại</a></form>
+</main>
+<footer>TX1 · Spring Boot · JPA / Hibernate · MySQL</footer>
+</body>
+</html>
